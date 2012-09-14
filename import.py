@@ -16,6 +16,14 @@ api = slumber.API(urljoin(SITE_URL, '/api/'))
 ds = DataSource(KML_PATH)
 
 
+def clean_pagename(name):
+    # Pagename's can't contain a slash with spaces surrounding it.
+    # LocalWiki will clean this up on save, but we want to stay
+    # consistent here.
+    name = '/'.join([part.strip() for part in name.split('/')])
+    return name
+
+
 def get_or_create_tag():
     tag_name = raw_input(
 """What tag name would you like to associate with this layer?
@@ -68,8 +76,18 @@ def update_map(pagename):
         'page': page_uri,
         'geom': json.loads(GeometryCollection(feature.geom.geos).geojson),
     }
-    # Update the map with the new geometry
-    api.map(pagename).put(map, api_key=API_KEY, username=USERNAME)
+
+    # Does the page already have a map?
+    map_data = api.map.get(page__name__iexact=pagename)['objects']
+    if map_data:
+        map = map_data[0]
+        map['geom'] = json.loads(
+            GeometryCollection(feature.geom.geos).geojson)
+        # Update the map with the new geometry
+        api.map(pagename).put(map, api_key=API_KEY, username=USERNAME)
+    else:
+        # Create new map from the feature's geometry.
+        api.map.post(map, api_key=API_KEY, username=USERNAME)
 
 
 for layer in ds:
@@ -78,7 +96,7 @@ for layer in ds:
     tag = get_or_create_tag()
 
     for feature in layer:
-        pagename = feature.get('Name')
+        pagename = clean_pagename(feature.get('Name'))
         content = feature.get('Description') or 'Describe %s here.' % pagename
 
         page_uri = get_or_create_page()
