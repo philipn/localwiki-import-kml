@@ -1,0 +1,12 @@
+Testing out a KML importer using the LocalWiki API.  Rough right now.
+
+To install:
+
+    pip install -r requirements.txt
+
+To run:
+
+    Make sure you have localwiki installed.  If you've got a development
+    install, make sure you're inside of the localwiki virtualenv.
+    
+    python import.py
