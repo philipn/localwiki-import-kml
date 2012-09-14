@@ -24,9 +24,7 @@ def clean_pagename(name):
     return name
 
 
-for layer in ds:
-    print 'Importing layer: %s' % layer.name
-    tag = None
+def get_or_create_tag():
     tag_name = raw_input(
 """What tag name would you like to associate with this layer?
 (or just press Enter for no tag):\n""").strip()
@@ -36,56 +34,73 @@ for layer in ds:
             api.tag.post({'name': tag_name},
                 api_key=API_KEY, username=USERNAME)
         # get tag uri
-        tag = api.tag.get(name__iexact=tag_name)['objects'][0]['resource_uri']
+        return api.tag.get(name__iexact=tag_name)['objects'][0]['resource_uri']
+    return None
+
+
+def get_or_create_page():
+    # If the page doesn't exist, create it
+    if not api.page.get(name__iexact=pagename)['objects']:
+        try:
+            result = api.page.post({'name': pagename, 'content': content},
+                api_key=API_KEY, username=USERNAME)
+        except:
+            pass
+        print ('..created page %s with description %s' %
+            (pagename, content))
+        return result['resource_uri']
+    else:
+        # Get page URI
+        return api.page.get(
+            name__iexact=pagename)['objects'][0]['resource_uri']
+
+
+def add_tag_to_page(tag, pagename):
+    # Add page tag
+    page_tags = api.page_tags.get(page__name__iexact=pagename)['objects']
+    if page_tags:
+        page_tags = page_tags[0]
+        if tag not in page_tags['tags']:
+            # Update existing page_tags
+            page_tags['tags'].append(tag)
+            api.page_tags(pagename).put(page_tags,
+                api_key=API_KEY, username=USERNAME)
+    else:
+        # Add a new page_tags
+        page_tags = {'page': page_uri, 'tags': [tag]}
+        api.page_tags.post(page_tags, api_key=API_KEY, username=USERNAME)
+
+
+def update_map(pagename):
+    map = {
+        'page': page_uri,
+        'geom': json.loads(GeometryCollection(feature.geom.geos).geojson),
+    }
+
+    # Does the page already have a map?
+    map_data = api.map.get(page__name__iexact=pagename)['objects']
+    if map_data:
+        map = map_data[0]
+        map['geom'] = json.loads(
+            GeometryCollection(feature.geom.geos).geojson)
+        # Update the map with the new geometry
+        api.map(pagename).put(map, api_key=API_KEY, username=USERNAME)
+    else:
+        # Create new map from the feature's geometry.
+        api.map.post(map, api_key=API_KEY, username=USERNAME)
+
+
+for layer in ds:
+    print 'Importing layer: %s' % layer.name
+
+    tag = get_or_create_tag()
 
     for feature in layer:
         pagename = clean_pagename(feature.get('Name'))
         content = feature.get('Description') or 'Describe %s here.' % pagename
 
-        # If the page doesn't exist, create it
-        if not api.page.get(name__iexact=pagename)['objects']:
-            try:
-                result = api.page.post({'name': pagename, 'content': content},
-                    api_key=API_KEY, username=USERNAME)
-            except:
-                pass
-            page_uri = result['resource_uri']
-            print ('..created page %s with description %s' %
-                (pagename, content))
-        else:
-            # Get page URI
-            page_uri = api.page.get(
-                name__iexact=pagename)['objects'][0]['resource_uri']
-
-        # Add page tag
-        page_tags = api.page_tags.get(page__name__iexact=pagename)['objects']
-        if page_tags:
-            page_tags = page_tags[0]
-            if tag not in page_tags['tags']:
-                # Update existing page_tags
-                page_tags['tags'].append(tag)
-                api.page_tags(pagename).put(page_tags,
-                    api_key=API_KEY, username=USERNAME)
-        else:
-            # Add a new page_tags
-            page_tags = {'page': page_uri, 'tags': [tag]}
-            api.page_tags.post(page_tags, api_key=API_KEY, username=USERNAME)
-
-        map = {
-            'page': page_uri,
-            'geom': json.loads(GeometryCollection(feature.geom.geos).geojson),
-        }
-
-        # Does the page already have a map?
-        map_data = api.map.get(page__name__iexact=pagename)['objects']
-        if map_data:
-            map = map_data[0]
-            map['geom'] = json.loads(
-                GeometryCollection(feature.geom.geos).geojson)
-            # Update the map with the new geometry
-            api.map(pagename).put(map, api_key=API_KEY, username=USERNAME)
-        else:
-            # Create new map from the feature's geometry.
-            api.map.post(map, api_key=API_KEY, username=USERNAME)
+        page_uri = get_or_create_page()
+        add_tag_to_page(tag, pagename)
+        update_map(pagename)
 
         print '..imported geometry for %s' % pagename
