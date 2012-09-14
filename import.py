@@ -17,9 +17,7 @@ ds = DataSource(KML_PATH)
 
 
 def clean_pagename(name):
-    # Pagename's can't contain a slash with spaces surrounding it.
-    # LocalWiki will clean this up on save, but we want to stay
-    # consistent here.
+    # Pagenames can't contain a slash with spaces surrounding it.
     name = '/'.join([part.strip() for part in name.split('/')])
     return name
 
