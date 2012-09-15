@@ -1,1 +1,2 @@
 slumber
+django==1.3

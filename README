@@ -2,11 +2,12 @@ Testing out a KML importer using the LocalWiki API.  Rough right now.
 
 To install:
 
-    pip install -r requirements.txt
+    python setup.py install
 
 To run:
 
-    Make sure you have localwiki installed.  If you've got a development
-    install, make sure you're inside of the localwiki virtualenv.
+    Make sure you have either the geodjango requirements (GEOS, GDAL, PROJ.4)
+    or localwiki installed.  If you've got a development install of localwiki,
+    make sure you're inside of the localwiki virtualenv.  Then just run:
     
-    python import.py
+    $ localwiki-import-kml
