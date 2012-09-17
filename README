@@ -2,7 +2,7 @@ Testing out a KML importer using the LocalWiki API.  Rough right now.
 
 To install:
 
-    pip install localwiki-import-kml
+    $ pip install localwiki-import-kml
 
 To run:
 
