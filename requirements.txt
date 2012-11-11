@@ -1,2 +1,2 @@
-slumber
+slumber==0.4.2
 django==1.3
