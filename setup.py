@@ -5,7 +5,7 @@ base_dir = os.path.dirname(os.path.abspath(__file__))
 
 setup(
     name = "localwiki-import-kml",
-    version = "0.1.0",
+    version = "0.1.2",
     description = "A script to import KML files into a LocalWiki instance",
     long_description = open(os.path.join(base_dir, "README")).read(),
     url = "https://github.com/philipn/localwiki_kml_import",
@@ -15,7 +15,10 @@ setup(
     zip_safe = False,
     scripts = ['localwiki-import-kml'],
     install_requires = [
-        'slumber',
+        'slumber==0.5.3-custom1',
         'django==1.3',
+    ],
+    dependency_links=[
+        'https://github.com/philipn/slumber/tarball/other_content_types_localwiki#egg=slumber-0.5.3-custom1',
     ],
 )

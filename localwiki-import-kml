@@ -8,12 +8,16 @@ from django.contrib.gis.geos import GeometryCollection
 
 import slumber
 
-SITE_URL = raw_input("Enter URL of LocalWiki instance: ").strip()
-API_KEY = raw_input("Enter API key: ").strip()
-USERNAME = raw_input("Enter API username: ").strip()
-KML_PATH = raw_input("Enter path to KML file: ").strip()
+#SITE_URL = raw_input("Enter URL of LocalWiki instance: ").strip()
+#API_KEY = raw_input("Enter API key: ").strip()
+#USERNAME = raw_input("Enter API username: ").strip()
+#KML_PATH = raw_input("Enter path to KML file: ").strip()
+SITE_URL = 'http://127.0.0.1:8000'
+API_KEY = '6f134911a70c953a543b6e4af50024aaadc72a49'
+USERNAME = 'philip'
+KML_PATH = '/home/philip/Downloads/ghost_signs.kml'
 
-api = slumber.API(urljoin(SITE_URL, '/api/'))
+api = slumber.API(urljoin(SITE_URL, '/api/'), format='json')
 
 ds = DataSource(KML_PATH)
 
@@ -38,7 +42,7 @@ def get_or_create_tag():
     return None
 
 
-def get_or_create_page():
+def get_or_create_page(pagename):
     # If the page doesn't exist, create it
     if not api.page.get(name__iexact=pagename)['objects']:
         try:
@@ -48,14 +52,14 @@ def get_or_create_page():
             pass
         print ('..created page %s with description %s' %
             (pagename, content))
-        return result['resource_uri']
-    else:
-        # Get page URI
-        return api.page.get(
-            name__iexact=pagename)['objects'][0]['resource_uri']
+        if result:
+            return result['resource_uri']
+    # Get page URI
+    return api.page.get(
+        name__iexact=pagename)['objects'][0]['resource_uri']
 
 
-def add_tag_to_page(tag, pagename):
+def add_tag_to_page(tag, pagename, page_uri):
     # Add page tag
     page_tags = api.page_tags.get(page__name__iexact=pagename)['objects']
     if page_tags:
@@ -71,7 +75,7 @@ def add_tag_to_page(tag, pagename):
         api.page_tags.post(page_tags, api_key=API_KEY, username=USERNAME)
 
 
-def update_map(pagename):
+def update_map(pagename, page_uri):
     map = {
         'page': page_uri,
         'geom': json.loads(GeometryCollection(feature.geom.geos).geojson),
@@ -99,8 +103,8 @@ for layer in ds:
         pagename = clean_pagename(feature.get('Name'))
         content = feature.get('Description') or 'Describe %s here.' % pagename
 
-        page_uri = get_or_create_page()
-        add_tag_to_page(tag, pagename)
-        update_map(pagename)
+        page_uri = get_or_create_page(pagename)
+        add_tag_to_page(tag, pagename, page_uri)
+        update_map(pagename, page_uri)
 
         print '..imported geometry for %s' % pagename
